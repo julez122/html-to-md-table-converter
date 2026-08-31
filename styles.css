@@ -1,0 +1,166 @@
+/* Defines the compact neutral palette used by the entire local tool. */
+:root {
+  color-scheme: light;
+  font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  background: #f4f6f7;
+  color: #17202a;
+}
+
+/* Makes box dimensions predictable for all controls. */
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+/* Removes the browser margin and gives the app a stable mobile background. */
+body {
+  min-width: 0;
+  margin: 0;
+  background: #f4f6f7;
+}
+
+/* Keeps the tool readable on desktop while using the available phone width. */
+.converter {
+  width: 100%;
+  max-width: 58rem;
+  min-height: 100dvh;
+  margin: 0 auto;
+  padding: max(0.7rem, env(safe-area-inset-top)) max(0.75rem, env(safe-area-inset-right)) max(0.75rem, env(safe-area-inset-bottom)) max(0.75rem, env(safe-area-inset-left));
+}
+
+/* Separates the concise title and explanation from the working surface. */
+.app-header {
+  min-width: 0;
+  max-width: 100%;
+  margin-bottom: 0.65rem;
+}
+
+/* Prevents the page title from dominating the mobile viewport. */
+.app-header h1 {
+  margin: 0;
+  font-size: 1.15rem;
+  line-height: 1.25;
+}
+
+/* Keeps supporting text small and utilitarian. */
+.app-header p {
+  margin: 0.2rem 0 0;
+  color: #52616b;
+  font-size: 0.84rem;
+  line-height: 1.35;
+  overflow-wrap: anywhere;
+  word-break: break-word;
+}
+
+/* Stacks the conversion controls with intentionally tight spacing. */
+.workspace {
+  display: grid;
+  min-width: 0;
+  max-width: 100%;
+  gap: 0.45rem;
+}
+
+/* Gives each textarea an accessible, compact label. */
+.field-label {
+  color: #31414a;
+  font-size: 0.84rem;
+  font-weight: 700;
+}
+
+/* Makes source and result areas large enough for real table work on phones. */
+.table-textarea {
+  width: 100%;
+  min-width: 0;
+  max-width: 100%;
+  display: block;
+  min-height: 30dvh;
+  resize: vertical;
+  border: 1px solid #9caab2;
+  border-radius: 0.2rem;
+  padding: 0.65rem;
+  background: #ffffff;
+  color: #17202a;
+  font: 0.9rem/1.4 ui-monospace, SFMono-Regular, Consolas, "Liberation Mono", monospace;
+}
+
+/* Makes focus clearly visible for touch, keyboard, and screen-reader users. */
+.table-textarea:focus {
+  outline: 2px solid #1769aa;
+  outline-offset: 1px;
+  border-color: #1769aa;
+}
+
+/* Lets compact action buttons wrap cleanly instead of becoming oversized. */
+.toolbar {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 8.5rem), 1fr));
+  width: 100%;
+  min-width: 0;
+  max-width: 100%;
+  gap: 0.4rem;
+  padding: 0.1rem 0;
+}
+
+/* Provides consistently touchable, non-pill action controls. */
+.button {
+  min-width: 0;
+  max-width: 100%;
+  min-height: 2.35rem;
+  border: 1px solid #71808a;
+  border-radius: 0.2rem;
+  padding: 0.45rem 0.7rem;
+  background: #ffffff;
+  color: #17202a;
+  font: inherit;
+  font-size: 0.88rem;
+  font-weight: 700;
+  overflow-wrap: anywhere;
+  white-space: normal;
+  cursor: pointer;
+}
+
+/* Gives the primary conversion action a clear but restrained emphasis. */
+.button-primary {
+  border-color: #125788;
+  background: #1769aa;
+  color: #ffffff;
+}
+
+/* Makes the destructive-looking clear action visually secondary. */
+.button-quiet {
+  color: #4e1717;
+}
+
+/* Supplies a simple pressed-state cue without animation or decoration. */
+.button:active {
+  transform: translateY(1px);
+}
+
+/* Keeps keyboard focus visible on every action button. */
+.button:focus-visible {
+  outline: 2px solid #1769aa;
+  outline-offset: 2px;
+}
+
+/* Shows concise conversion, copy, download, and error feedback. */
+.status {
+  min-height: 1.25rem;
+  margin: 0;
+  color: #31414a;
+  font-size: 0.84rem;
+  line-height: 1.35;
+}
+
+/* Uses a stronger color only for explicit error messages. */
+.status[data-state="error"] {
+  color: #a11d1d;
+}
+
+/* Slightly increases textarea share on wider screens without adding extra chrome. */
+@media (min-width: 46rem) {
+  /* Gives both working areas a little more height when vertical space allows. */
+  .table-textarea {
+    min-height: 33dvh;
+  }
+}

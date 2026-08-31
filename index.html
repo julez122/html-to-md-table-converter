@@ -1,0 +1,36 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#f4f6f7">
+  <title>HTML Table to Markdown</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <main class="converter" aria-labelledby="page-title">
+    <header class="app-header">
+      <h1 id="page-title">HTML Table to Markdown</h1>
+      <p>Paste HTML containing one or more tables. Everything runs locally in this page.</p>
+    </header>
+
+    <section class="workspace" aria-label="Table conversion workspace">
+      <label class="field-label" for="html-input">HTML input</label>
+      <textarea id="html-input" class="table-textarea" spellcheck="false" autocapitalize="off" autocomplete="off" placeholder="Paste a &lt;table&gt; or larger HTML here"></textarea>
+
+      <div class="toolbar" aria-label="Conversion actions">
+        <button id="convert-button" type="button" class="button button-primary">Convert</button>
+        <button id="copy-button" type="button" class="button">Copy Markdown</button>
+        <button id="download-button" type="button" class="button">Download as File</button>
+        <button id="clear-button" type="button" class="button button-quiet">Clear</button>
+      </div>
+
+      <label class="field-label" for="markdown-output">Markdown output</label>
+      <textarea id="markdown-output" class="table-textarea" spellcheck="false" autocapitalize="off" autocomplete="off" placeholder="Converted Markdown will appear here"></textarea>
+      <p id="status" class="status" role="status" aria-live="polite"></p>
+    </section>
+  </main>
+
+  <script src="app.js" defer></script>
+</body>
+</html>
