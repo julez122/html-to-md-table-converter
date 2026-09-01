@@ -2,6 +2,7 @@
   'use strict';
 
   const input = document.getElementById('html-input');
+  const sourcePageUrlInput = document.getElementById('source-page-url');
   const output = document.getElementById('markdown-output');
   const status = document.getElementById('status');
   const convertButton = document.getElementById('convert-button');
@@ -109,6 +110,31 @@
     return destination.replace(/([\\()])/g, '\\$1').replace(/\s/g, '%20');
   }
 
+  function resolveDestination(destination, sourcePageUrl) {
+    if (!destination || !sourcePageUrl || /^[a-z][a-z\d+.-]*:/i.test(destination)) {
+      return destination;
+    }
+
+    try {
+      return new URL(destination, sourcePageUrl).href;
+    } catch (error) {
+      return destination;
+    }
+  }
+
+  function hasValidSourcePageUrl(sourcePageUrl) {
+    if (!sourcePageUrl) {
+      return true;
+    }
+
+    try {
+      new URL(sourcePageUrl);
+      return true;
+    } catch (error) {
+      return false;
+    }
+  }
+
   function inlineCode(content) {
     const runs = content.match(/`+/g) || [];
     const longestRun = runs.reduce((length, run) => Math.max(length, run.length), 0);
@@ -117,11 +143,20 @@
     return `${fence}${needsPadding ? ' ' : ''}${content}${needsPadding ? ' ' : ''}${fence}`;
   }
 
-  function renderInlineChildren(node) {
-    return Array.from(node.childNodes).map(renderInlineNode).join('');
+  function imageToMarkdown(image, sourcePageUrl) {
+    const alt = image.getAttribute('alt')?.trim() || 'Image';
+    const anchor = image.closest('a');
+    const anchorHref = anchor?.getAttribute('href')?.trim();
+    const source = image.getAttribute('src')?.trim();
+    const destination = resolveDestination(anchorHref || source || '', sourcePageUrl);
+    return `![${alt}](${destination ? escapeLinkDestination(destination) : ''})`;
   }
 
-  function renderInlineNode(node) {
+  function renderInlineChildren(node, sourcePageUrl) {
+    return Array.from(node.childNodes).map((child) => renderInlineNode(child, sourcePageUrl)).join('');
+  }
+
+  function renderInlineNode(node, sourcePageUrl) {
     if (node.nodeType === Node.TEXT_NODE) {
       return node.nodeValue || '';
     }
@@ -144,10 +179,10 @@
     }
 
     if (tag === 'IMG') {
-      return node.getAttribute('alt') || '';
+      return imageToMarkdown(node, sourcePageUrl);
     }
 
-    const content = renderInlineChildren(node);
+    const content = renderInlineChildren(node, sourcePageUrl);
     if (tag === 'STRONG' || tag === 'B') {
       return content.trim() ? `**${content.trim()}**` : '';
     }
@@ -167,7 +202,11 @@
     if (tag === 'A') {
       const label = content.trim();
       const href = node.getAttribute('href');
-      return label && href ? `[${label}](${escapeLinkDestination(href)})` : label;
+      if (node.querySelector('img')) {
+        return label;
+      }
+      const destination = resolveDestination(href || '', sourcePageUrl);
+      return label && destination ? `[${label}](${escapeLinkDestination(destination)})` : label;
     }
 
     if (BLOCK_TAGS.has(tag)) {
@@ -186,16 +225,16 @@
       .replace(/\|/g, '\\|');
   }
 
-  function cellToMarkdown(cell) {
-    return normalizeCellMarkdown(renderInlineChildren(cell));
+  function cellToMarkdown(cell, sourcePageUrl) {
+    return normalizeCellMarkdown(renderInlineChildren(cell, sourcePageUrl));
   }
 
-  function buildHeaders(model, headerRows) {
+  function buildHeaders(model, headerRows, sourcePageUrl) {
     return Array.from({ length: model.width }, (_, columnIndex) => {
       const parts = [];
       headerRows.forEach((rowIndex) => {
         const entry = model.grid[rowIndex][columnIndex];
-        const text = entry ? cellToMarkdown(entry.cell) : '';
+        const text = entry ? cellToMarkdown(entry.cell, sourcePageUrl) : '';
         if (text && !parts.includes(text)) {
           parts.push(text);
         }
@@ -208,20 +247,20 @@
     return `| ${cells.join(' | ')} |`;
   }
 
-  function tableToMarkdown(table) {
+  function tableToMarkdown(table, sourcePageUrl) {
     const model = buildLogicalGrid(table);
     const columnCount = Math.max(model.width, 1);
     const headerRows = findHeaderRows(model, table);
     const headerSet = new Set(headerRows);
     const headers = headerRows.length > 0
-      ? buildHeaders({ ...model, width: columnCount }, headerRows)
+      ? buildHeaders({ ...model, width: columnCount }, headerRows, sourcePageUrl)
       : Array.from({ length: columnCount }, (_, index) => `Column ${index + 1}`);
     const bodyRows = model.grid
       .map((row, rowIndex) => ({ row, rowIndex }))
       .filter(({ rowIndex }) => !headerSet.has(rowIndex))
       .map(({ row }) => Array.from({ length: columnCount }, (_, columnIndex) => {
         const entry = row[columnIndex];
-        return entry ? cellToMarkdown(entry.cell) : '';
+        return entry ? cellToMarkdown(entry.cell, sourcePageUrl) : '';
       }));
 
     return [
@@ -240,7 +279,7 @@
     ].join('\n');
   }
 
-  function convertHtmlToMarkdown(html) {
+  function convertHtmlToMarkdown(html, sourcePageUrl = '') {
     const documentFragment = parseDocument(html);
     const tables = Array.from(documentFragment.querySelectorAll('table'));
     if (tables.length === 0) {
@@ -249,7 +288,7 @@
 
     const markdownTables = tables.map((table) => {
       try {
-        return tableToMarkdown(table);
+        return tableToMarkdown(table, sourcePageUrl);
       } catch (error) {
         console.warn('A table needed the fallback converter.', error);
         return fallbackTable(table);
@@ -260,10 +299,15 @@
   }
 
   function convertFromInput() {
-    const result = convertHtmlToMarkdown(input.value);
+    const sourcePageUrl = sourcePageUrlInput.value.trim();
+    const result = convertHtmlToMarkdown(input.value, sourcePageUrl);
     output.value = result.markdown;
     if (result.count === 0) {
       setStatus('No HTML table was found.', 'error');
+      return;
+    }
+    if (sourcePageUrl && !hasValidSourcePageUrl(sourcePageUrl)) {
+      setStatus(`Converted ${result.count} ${result.count === 1 ? 'table' : 'tables'}, but the invalid source page URL was ignored.`, 'error');
       return;
     }
     setStatus(`Converted ${result.count} ${result.count === 1 ? 'table' : 'tables'}.`);
@@ -311,6 +355,7 @@
 
   function clearAll() {
     input.value = '';
+    sourcePageUrlInput.value = '';
     output.value = '';
     setStatus('Cleared.');
     input.focus();
@@ -406,6 +451,53 @@
         html: '<table class="empty"></table>',
         expected: '| Column 1 |\n| --- |',
       },
+      {
+        name: 'standalone image uses its source',
+        html: '<table><tr><th>Icon</th></tr><tr><td><img alt="Zapup" src="images/zapup.png"></td></tr></table>',
+        expected: '| Icon |\n| --- |\n| ![Zapup](images/zapup.png) |',
+      },
+      {
+        name: 'linked image uses the anchor destination',
+        html: '<table><tr><th>Icon</th></tr><tr><td><a href="/wiki/File:Zapup.png"><img alt="Zapup.png" src="/images/thumb/zapup.png"></a></td></tr></table>',
+        expected: '| Icon |\n| --- |\n| ![Zapup.png](/wiki/File:Zapup.png) |',
+      },
+      {
+        name: 'relative image links stay relative',
+        html: '<table><tr><th>Icon</th></tr><tr><td><a href="../files/item.png"><img alt="Item" src="./thumbs/item.png"></a></td></tr></table>',
+        expected: '| Icon |\n| --- |\n| ![Item](../files/item.png) |',
+      },
+      {
+        name: 'absolute image source stays absolute',
+        html: '<table><tr><th>Icon</th></tr><tr><td><img alt="Remote" src="https://cdn.example.com/assets/remote.png"></td></tr></table>',
+        expected: '| Icon |\n| --- |\n| ![Remote](https://cdn.example.com/assets/remote.png) |',
+      },
+      {
+        name: 'missing image alt uses a placeholder',
+        html: '<table><tr><th>Icon</th></tr><tr><td><img src="/images/unknown.png"></td></tr></table>',
+        expected: '| Icon |\n| --- |\n| ![Image](/images/unknown.png) |',
+      },
+      {
+        name: 'ordinary links remain normal Markdown links',
+        html: '<table><tr><th>Link</th></tr><tr><td><a href="https://example.com/docs">Documentation</a></td></tr></table>',
+        expected: '| Link |\n| --- |\n| [Documentation](https://example.com/docs) |',
+      },
+      {
+        name: 'image mixed with text and formatting',
+        html: '<table><tr><th>Content</th></tr><tr><td><strong>Featured</strong> <img alt="Badge" src="/images/badge.png"> <em>today</em></td></tr></table>',
+        expected: '| Content |\n| --- |\n| **Featured** ![Badge](/images/badge.png) *today* |',
+      },
+      {
+        name: 'source page URL resolves root dot and parent destinations',
+        sourcePageUrl: 'https://clashofcritters.wiki.gg/wiki/Critters',
+        html: '<table><tr><th>Image</th><th>Link</th><th>Parent</th></tr><tr><td><a href="/wiki/File:Zapup.png"><img alt="Zapup.png" src="/images/thumb/zapup.png"></a></td><td><a href="./Guide">Guide</a></td><td><img alt="Badge" src="../images/badge.png"></td></tr></table>',
+        expected: '| Image | Link | Parent |\n| --- | --- | --- |\n| ![Zapup.png](https://clashofcritters.wiki.gg/wiki/File:Zapup.png) | [Guide](https://clashofcritters.wiki.gg/wiki/Guide) | ![Badge](https://clashofcritters.wiki.gg/images/badge.png) |',
+      },
+      {
+        name: 'source page URL leaves absolute destinations unchanged',
+        sourcePageUrl: 'https://clashofcritters.wiki.gg/wiki/Critters',
+        html: '<table><tr><th>Image</th><th>Link</th></tr><tr><td><a href="https://cdn.example.com/files/zapup.png"><img alt="Zapup" src="https://images.example.com/zapup.png"></a></td><td><a href="https://example.com/docs">Docs</a></td></tr></table>',
+        expected: '| Image | Link |\n| --- | --- |\n| ![Zapup](https://cdn.example.com/files/zapup.png) | [Docs](https://example.com/docs) |',
+      },
     ];
 
     let passed = 0;
@@ -414,7 +506,7 @@
       passed += 1;
     });
     markdownCases.forEach((test) => {
-      assertEqual(convertHtmlToMarkdown(test.html).markdown, test.expected, test.name);
+      assertEqual(convertHtmlToMarkdown(test.html, test.sourcePageUrl).markdown, test.expected, test.name);
       passed += 1;
     });
     assertEqual(convertHtmlToMarkdown('<p>No table here</p>'), { markdown: '', count: 0 }, 'no table result');

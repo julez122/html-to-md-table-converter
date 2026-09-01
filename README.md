@@ -7,6 +7,8 @@ A dependency-free, mobile-friendly HTML table converter. Open `index.html` direc
 - Reconstructs logical table grids before generating Markdown, including `rowspan`, `colspan`, empty cells, and uneven rows.
 - Combines multi-level column headings and uses neutral `Column 1`, `Column 2`, and similar headers when a table has no identifiable header.
 - Preserves common inline content such as links, bold, italics, code, and line breaks.
+- Preserves images as Markdown images, preferring an enclosing image link over the image `src` without resolving relative URLs.
+- Optionally resolves relative and root-relative links or image destinations against a supplied source-page URL; empty source URLs leave HTML URLs untouched.
 - Treats nested tables as separate tables so their rows cannot shift the parent table's cells.
 - Includes copy, Markdown download, and clear actions that work locally without a server.
 - Uses an auto-fitting action grid and shrink-safe text fields to keep controls inside narrow phone viewports.

@@ -68,6 +68,20 @@ body {
   font-weight: 700;
 }
 
+/* Keeps the optional base-URL field compact and safely within the phone width. */
+.source-input {
+  width: 100%;
+  min-width: 0;
+  max-width: 100%;
+  min-height: 2.35rem;
+  border: 1px solid #9caab2;
+  border-radius: 0.2rem;
+  padding: 0.45rem 0.65rem;
+  background: #ffffff;
+  color: #17202a;
+  font: 0.9rem/1.4 ui-monospace, SFMono-Regular, Consolas, "Liberation Mono", monospace;
+}
+
 /* Makes source and result areas large enough for real table work on phones. */
 .table-textarea {
   width: 100%;
@@ -86,6 +100,13 @@ body {
 
 /* Makes focus clearly visible for touch, keyboard, and screen-reader users. */
 .table-textarea:focus {
+  outline: 2px solid #1769aa;
+  outline-offset: 1px;
+  border-color: #1769aa;
+}
+
+/* Gives the optional source-page field the same clear focus treatment as the textareas. */
+.source-input:focus {
   outline: 2px solid #1769aa;
   outline-offset: 1px;
   border-color: #1769aa;
