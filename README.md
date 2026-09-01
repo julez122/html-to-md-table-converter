@@ -25,7 +25,7 @@ git clone https://github.com/julez122/html-to-md-table-converter.git
 
 ### Manual
 
-If you're on mobile or a device without Git installed, either download the files individually or [download the zip](https://github.com/julez122/html-to-md-table-converter/releases/download/Release/html-to-md-table-converter.zip).
+If you're on mobile or a device without Git installed, either download the files individually or [download the zip](https://github.com/julez122/html-to-md-table-converter/releases/download/v2/html-to-md-table-converter-v2.zip).
 
 ## Use
 
