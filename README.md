@@ -1,7 +1,7 @@
 # HTML Table to Markdown Table
 
 <p align="center">
-<a href="https://ibb.co/s9t2cLLs"><img src="https://i.ibb.co/Wvs67SSB/html-to-md.png" width="80%" alt="html-to-md" border="0" /></a>
+<a href="https://ibb.co/s9t2cLLs"><img src="https://i.ibb.co/Wvs67SSB/html-to-md.png" width="90%" alt="html-to-md" border="0" /></a>
 </p>
 
 A dependency-free, mobile-friendly HTML table converter. Open `index.html` directly in a modern browser, paste an HTML table or a larger HTML fragment, and convert all discovered tables into Markdown.
