@@ -148,8 +148,12 @@
     const anchor = image.closest('a');
     const anchorHref = anchor?.getAttribute('href')?.trim();
     const source = image.getAttribute('src')?.trim();
-    const destination = resolveDestination(anchorHref || source || '', sourcePageUrl);
-    return `![${alt}](${destination ? escapeLinkDestination(destination) : ''})`;
+    const imageDestination = resolveDestination(source || anchorHref || '', sourcePageUrl);
+    const linkDestination = resolveDestination(anchorHref || '', sourcePageUrl);
+    const markdownImage = `![${alt}](${imageDestination ? escapeLinkDestination(imageDestination) : ''})`;
+    return source && linkDestination
+      ? `[${markdownImage}](${escapeLinkDestination(linkDestination)})`
+      : markdownImage;
   }
 
   function renderInlineChildren(node, sourcePageUrl) {
@@ -457,14 +461,14 @@
         expected: '| Icon |\n| --- |\n| ![Zapup](images/zapup.png) |',
       },
       {
-        name: 'linked image uses the anchor destination',
+        name: 'linked image keeps its source and anchor destination',
         html: '<table><tr><th>Icon</th></tr><tr><td><a href="/wiki/File:Zapup.png"><img alt="Zapup.png" src="/images/thumb/zapup.png"></a></td></tr></table>',
-        expected: '| Icon |\n| --- |\n| ![Zapup.png](/wiki/File:Zapup.png) |',
+        expected: '| Icon |\n| --- |\n| [![Zapup.png](/images/thumb/zapup.png)](/wiki/File:Zapup.png) |',
       },
       {
         name: 'relative image links stay relative',
         html: '<table><tr><th>Icon</th></tr><tr><td><a href="../files/item.png"><img alt="Item" src="./thumbs/item.png"></a></td></tr></table>',
-        expected: '| Icon |\n| --- |\n| ![Item](../files/item.png) |',
+        expected: '| Icon |\n| --- |\n| [![Item](./thumbs/item.png)](../files/item.png) |',
       },
       {
         name: 'absolute image source stays absolute',
@@ -489,14 +493,14 @@
       {
         name: 'source page URL resolves root dot and parent destinations',
         sourcePageUrl: 'https://clashofcritters.wiki.gg/wiki/Critters',
-        html: '<table><tr><th>Image</th><th>Link</th><th>Parent</th></tr><tr><td><a href="/wiki/File:Zapup.png"><img alt="Zapup.png" src="/images/thumb/zapup.png"></a></td><td><a href="./Guide">Guide</a></td><td><img alt="Badge" src="../images/badge.png"></td></tr></table>',
-        expected: '| Image | Link | Parent |\n| --- | --- | --- |\n| ![Zapup.png](https://clashofcritters.wiki.gg/wiki/File:Zapup.png) | [Guide](https://clashofcritters.wiki.gg/wiki/Guide) | ![Badge](https://clashofcritters.wiki.gg/images/badge.png) |',
+        html: '<table><tr><th>Image</th><th>Link</th><th>Parent</th></tr><tr><td><a href="/wiki/File:Zapup.png"><img alt="Zapup.png" src="/images/thumb/Zapup.png/100px-Zapup.png?f1a4c6"></a></td><td><a href="./Guide">Guide</a></td><td><img alt="Badge" src="../images/badge.png"></td></tr></table>',
+        expected: '| Image | Link | Parent |\n| --- | --- | --- |\n| [![Zapup.png](https://clashofcritters.wiki.gg/images/thumb/Zapup.png/100px-Zapup.png?f1a4c6)](https://clashofcritters.wiki.gg/wiki/File:Zapup.png) | [Guide](https://clashofcritters.wiki.gg/wiki/Guide) | ![Badge](https://clashofcritters.wiki.gg/images/badge.png) |',
       },
       {
         name: 'source page URL leaves absolute destinations unchanged',
         sourcePageUrl: 'https://clashofcritters.wiki.gg/wiki/Critters',
         html: '<table><tr><th>Image</th><th>Link</th></tr><tr><td><a href="https://cdn.example.com/files/zapup.png"><img alt="Zapup" src="https://images.example.com/zapup.png"></a></td><td><a href="https://example.com/docs">Docs</a></td></tr></table>',
-        expected: '| Image | Link |\n| --- | --- |\n| ![Zapup](https://cdn.example.com/files/zapup.png) | [Docs](https://example.com/docs) |',
+        expected: '| Image | Link |\n| --- | --- |\n| [![Zapup](https://images.example.com/zapup.png)](https://cdn.example.com/files/zapup.png) | [Docs](https://example.com/docs) |',
       },
     ];
 
