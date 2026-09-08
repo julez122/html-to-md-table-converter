@@ -4,7 +4,7 @@
 <a href="https://ibb.co/6cDqtp29"><img src="https://i.ibb.co/j93jwxd0/html-to-md.png" alt="html to md" border="0" width="80%"></a>
 </p>
 
-A dependency-free, mobile-friendly HTML table converter. Open `index.html` directly in a modern browser, paste an HTML table or a larger HTML fragment, and convert all discovered tables into Markdown. The app uses only local browser features. It does not upload, store, or send pasted HTML anywhere.
+A dependency-free, mobile-friendly HTML table converter. Open `index.html` directly in a modern browser, paste an HTML table or a larger HTML fragment, and convert all discovered tables into Markdo[...]
 
 ## Features
 
@@ -38,7 +38,7 @@ git clone https://github.com/julez122/html-to-md-table-converter.git
 
 ### Manual
 
-If you're on mobile or a device without Git installed, either download the files individually or [download the zip](https://github.com/julez122/html-to-md-table-converter/releases/download/v4/html-to-md-table-converter-v4.zip).
+If you're on mobile or a device without Git installed, either download the files individually or [download the zip](https://github.com/julez122/html-to-md-table-converter/releases/download/v4/html-to-[...]
 
 ## Updating
 
@@ -52,4 +52,16 @@ git pull
 
 ### Manual
 
-Download the latest [Release](https://github.com/julez122/html-to-md-table-converter/releases), extract it and replace the previous files.
+If you don't use Git, update manually:
+
+1. Download the latest release from the Releases page: https://github.com/julez122/html-to-md-table-converter/releases
+2. Extract the downloaded ZIP file.
+3. If you have no local changes: copy the extracted files into your existing html-to-md-table-converter folder and overwrite when prompted.
+4. If you have local edits you want to keep: first back up your folder, or extract the release to a new folder and selectively merge files (use a diff/merge tool such as Meld, WinMerge, or Beyond Compare).
+5. Open `index.html` in your browser (desktop or mobile) to run the updated app — no server required.
+
+Tips & troubleshooting:
+- Back up any modified files before replacing to avoid accidental data loss.
+- To preserve custom edits, merge changes rather than overwriting every file.
+- If the app behaves unexpectedly after updating, clear your browser cache or reopen the file.
+- If tables aren't converting as expected, check your source HTML for malformed tags or nested markup that may need cleaning.
