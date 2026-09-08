@@ -4,7 +4,7 @@
 <a href="https://ibb.co/s9t2cLLs"><img src="https://i.ibb.co/Wvs67SSB/html-to-md.png" width="90%" alt="html-to-md" border="0" /></a>
 </p>
 
-A dependency-free, mobile-friendly HTML table converter. Open `index.html` directly in a modern browser, paste an HTML table or a larger HTML fragment, and convert all discovered tables into Markdown.
+A dependency-free, mobile-friendly HTML table converter. Open `index.html` directly in a modern browser, paste an HTML table or a larger HTML fragment, and convert all discovered tables into Markdown. The app uses only local browser features. It does not upload, store, or send pasted HTML anywhere.
 
 ## Features
 
@@ -18,31 +18,38 @@ A dependency-free, mobile-friendly HTML table converter. Open `index.html` direc
 - Includes copy, Markdown download, and clear actions that work locally without a server.
 - Uses an auto-fitting action grid and shrink-safe text fields to keep controls inside narrow phone viewports.
 
+## Use
+
+1. Open `index.html` in Chrome or another current browser, including on Android.
+2. If your table has relative or root-relative links such as `/wiki/...`, paste the website link in **Source page URL**. Otherwise, leave it blank.
+3. Paste HTML into **HTML input**, or choose a saved HTML file with **Attach HTML File**. Selecting a file extracts its table markup into the input but does not convert automatically.
+4. Select **Convert**.
+5. Copy the result, edit it if desired, or download it as `tables.md`.
+
 ## Installation
 
 ### Git
 
 Run the following in your shell:
 
-```
+```bash
 git clone https://github.com/julez122/html-to-md-table-converter.git
 ```
 
 ### Manual
 
-If you're on mobile or a device without Git installed, either download the files individually or [download the zip](https://github.com/julez122/html-to-md-table-converter/releases/download/v3/html-to-md-table-converter-v3.zip).
+If you're on mobile or a device without Git installed, either download the files individually or [download the zip](https://github.com/julez122/html-to-md-table-converter/releases/download/v4/html-to-md-table-converter-v4.zip).
 
-## Use
+## Updating
 
-1. Open `index.html` in Chrome or another current browser, including on Android.
-<<<<<<< Updated upstream
-2. If your table has relative or root-relative links e.g. `(wiki/...)`, paste the website link in **"Source Page URL"**. If it doesn't, then leave it blank.
-3. Paste HTML into **HTML input**.
-=======
-2. If your table has relative or root-relative links such as `/wiki/...`, paste the website link in **Source page URL**. Otherwise, leave it blank.
-3. Paste HTML into **HTML input**, or choose a saved HTML file with **Attach HTML File**. Selecting a file extracts its table markup into the input but does not convert automatically.
->>>>>>> Stashed changes
-4. Select **Convert**.
-5. Copy the result, edit it if desired, or download it as `tables.md`.
+### Git
 
-The app uses only local browser features. It does not upload, store, or send pasted HTML anywhere.
+Open the shell in your `html-to-md-table-converter` folder and simply run:
+
+```bash
+git pull
+```
+
+### Manual
+
+Download the latest [Release](https://github.com/julez122/html-to-md-table-converter/releases), extract it and replace the previous files.
