@@ -82,6 +82,34 @@ body {
   font: 0.9rem/1.4 ui-monospace, SFMono-Regular, Consolas, "Liberation Mono", monospace;
 }
 
+/* Keeps the local HTML-file picker compact and prevents long filenames from widening the page. */
+.file-input {
+  width: 100%;
+  min-width: 0;
+  max-width: 100%;
+  min-height: 2.35rem;
+  overflow: hidden;
+  border: 1px solid #9caab2;
+  border-radius: 0.2rem;
+  padding: 0.25rem;
+  background: #ffffff;
+  color: #17202a;
+  font: 0.84rem/1.4 system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+}
+
+/* Gives the native file-picker action the same compact, utilitarian treatment as other controls. */
+.file-input::file-selector-button {
+  min-height: 1.75rem;
+  margin-right: 0.5rem;
+  border: 1px solid #71808a;
+  border-radius: 0.15rem;
+  padding: 0.2rem 0.5rem;
+  background: #ffffff;
+  color: #17202a;
+  font: inherit;
+  font-weight: 700;
+}
+
 /* Makes source and result areas large enough for real table work on phones. */
 .table-textarea {
   width: 100%;
@@ -107,6 +135,13 @@ body {
 
 /* Gives the optional source-page field the same clear focus treatment as the textareas. */
 .source-input:focus {
+  outline: 2px solid #1769aa;
+  outline-offset: 1px;
+  border-color: #1769aa;
+}
+
+/* Makes keyboard focus visible when choosing a local HTML file. */
+.file-input:focus {
   outline: 2px solid #1769aa;
   outline-offset: 1px;
   border-color: #1769aa;

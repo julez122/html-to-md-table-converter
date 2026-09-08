@@ -3,6 +3,7 @@
 
   const input = document.getElementById('html-input');
   const sourcePageUrlInput = document.getElementById('source-page-url');
+  const htmlFileInput = document.getElementById('html-file-input');
   const output = document.getElementById('markdown-output');
   const status = document.getElementById('status');
   const convertButton = document.getElementById('convert-button');
@@ -12,6 +13,7 @@
 
   const BLOCK_TAGS = new Set(['ADDRESS', 'ARTICLE', 'ASIDE', 'BLOCKQUOTE', 'DD', 'DIV', 'DL', 'DT', 'FIGCAPTION', 'FIGURE', 'FOOTER', 'H1', 'H2', 'H3', 'H4', 'H5', 'H6', 'HEADER', 'LI', 'MAIN', 'NAV', 'OL', 'P', 'SECTION', 'UL']);
   const IGNORED_TAGS = new Set(['SCRIPT', 'STYLE', 'TEMPLATE', 'NOSCRIPT', 'SVG', 'CANVAS']);
+  let fileLoadToken = 0;
 
   function setStatus(message, state = 'info') {
     status.textContent = message;
@@ -133,6 +135,21 @@
     } catch (error) {
       return false;
     }
+  }
+
+  function isSupportedHtmlFile(file) {
+    const name = file.name || '';
+    const type = (file.type || '').toLowerCase();
+    return /\.(?:html?|xhtml)$/i.test(name)
+      || type === 'text/html'
+      || type === 'application/xhtml+xml';
+  }
+
+  function extractTableMarkup(html) {
+    const documentFragment = parseDocument(html);
+    const tables = Array.from(documentFragment.querySelectorAll('table'));
+    const topLevelTables = tables.filter((table) => !table.parentElement?.closest('table'));
+    return topLevelTables.map((table) => table.outerHTML).join('\n\n');
   }
 
   function inlineCode(content) {
@@ -358,11 +375,46 @@
   }
 
   function clearAll() {
+    fileLoadToken += 1;
     input.value = '';
     sourcePageUrlInput.value = '';
+    htmlFileInput.value = '';
     output.value = '';
     setStatus('Cleared.');
     input.focus();
+  }
+
+  async function loadHtmlFile() {
+    const file = htmlFileInput.files?.[0];
+    if (!file) {
+      return;
+    }
+
+    if (!isSupportedHtmlFile(file)) {
+      htmlFileInput.value = '';
+      setStatus('Choose an HTML file with a .html, .htm, or .xhtml extension.', 'error');
+      return;
+    }
+
+    const requestToken = ++fileLoadToken;
+    setStatus(`Reading ${file.name}…`);
+    try {
+      const tableMarkup = extractTableMarkup(await file.text());
+      if (requestToken !== fileLoadToken) {
+        return;
+      }
+      if (!tableMarkup) {
+        setStatus(`No HTML table was found in ${file.name}.`, 'error');
+        return;
+      }
+      input.value = tableMarkup;
+      output.value = '';
+      setStatus(`Loaded table markup from ${file.name}. Select Convert to process it.`);
+    } catch (error) {
+      if (requestToken === fileLoadToken) {
+        setStatus(`Could not read ${file.name}. Try choosing the file again.`, 'error');
+      }
+    }
   }
 
   function assertEqual(actual, expected, name) {
@@ -515,11 +567,22 @@
     });
     assertEqual(convertHtmlToMarkdown('<p>No table here</p>'), { markdown: '', count: 0 }, 'no table result');
     passed += 1;
+    assertEqual(isSupportedHtmlFile({ name: 'saved-page.html', type: 'text/html' }), true, 'HTML file type');
+    assertEqual(isSupportedHtmlFile({ name: 'saved-page.htm', type: '' }), true, 'HTM file extension');
+    assertEqual(isSupportedHtmlFile({ name: 'notes.txt', type: 'text/plain' }), false, 'non-HTML file type');
+    const extractedMarkup = extractTableMarkup('<main>Ignore this text<table id="first"><tr><td>One</td></tr></table><section>Ignore this too</section><table id="second"><tr><td>Two</td></tr></table></main>');
+    assertEqual(parseDocument(extractedMarkup).querySelectorAll('table').length, 2, 'file table extraction count');
+    assertEqual(extractedMarkup.includes('Ignore this'), false, 'file table extraction omits non-table markup');
+    const nestedExtractedMarkup = extractTableMarkup('<table id="outer"><tr><td><table id="inner"><tr><td>Child</td></tr></table></td></tr></table>');
+    assertEqual(parseDocument(nestedExtractedMarkup).querySelectorAll('table').length, 2, 'file table extraction keeps nested tables once');
+    assertEqual(extractTableMarkup('<article>No tables here</article>'), '', 'file table extraction empty result');
+    passed += 7;
     console.info(`Table converter structural tests: ${passed} passed.`);
     return passed;
   }
 
   convertButton.addEventListener('click', convertFromInput);
+  htmlFileInput.addEventListener('change', loadHtmlFile);
   copyButton.addEventListener('click', copyMarkdown);
   downloadButton.addEventListener('click', downloadMarkdown);
   clearButton.addEventListener('click', clearAll);
