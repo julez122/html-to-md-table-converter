@@ -59,7 +59,7 @@ git pull
 
 If you don't use Git, update manually:
 
-1. Download the latest release from the [Releases page](https://github.com/julez122/html-to-md-table-converter/releases).
+1. Download the latest release from the [Releases page](https://github.com/julez122/html-to-md-table-converter/releases/latest).
 2. Extract the downloaded ZIP file.
 3. If you have no local changes: copy the extracted files into your existing `html-to-md-table-converter` folder and overwrite when prompted.
 4. If you have local edits you want to keep: first back up your folder, or extract the release to a new folder and selectively merge files.
