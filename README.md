@@ -1,7 +1,7 @@
 # HTML Table to Markdown Table
 
 <p align="center">
-<a href="https://ibb.co/s9t2cLLs"><img src="https://i.ibb.co/Wvs67SSB/html-to-md.png" width="90%" alt="html-to-md" border="0" /></a>
+<a href="https://ibb.co/6cDqtp29"><img src="https://i.ibb.co/j93jwxd0/html-to-md.png" alt="html to md" border="0" width="80%"></a>
 </p>
 
 A dependency-free, mobile-friendly HTML table converter. Open `index.html` directly in a modern browser, paste an HTML table or a larger HTML fragment, and convert all discovered tables into Markdown. The app uses only local browser features. It does not upload, store, or send pasted HTML anywhere.
