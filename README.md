@@ -20,7 +20,7 @@ A dependency-free, mobile-friendly HTML table converter. Open `index.html` direc
 ## Use
 
 1. Open `index.html` in Chrome or another current browser, including on Android.
-2. If your table has relative or root-relative links such as `/wiki/...`, paste the website link in **Source page URL**. Otherwise, leave it blank.
+2. If your table has relative or root-relative links such as `/wiki/...`, paste the website link in **Source page URL**. This also applies to attached HTML files with relative links. Otherwise, leave it blank.
 3. Paste HTML into **HTML input**, or choose a saved HTML file with **Attach HTML File**. Selecting a file extracts its table markup into the input but does not convert automatically.
 4. Select **Convert**.
 5. Copy the result, edit it if desired, or download it as `tables.md`.
