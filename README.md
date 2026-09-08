@@ -1,7 +1,7 @@
 # HTML Table to Markdown Table
 
 <p align="center">
-<a href="https://ibb.co/s9t2cLLs"><img src="https://i.ibb.co/Wvs67SSB/html-to-md.png" width="80%" alt="html-to-md" border="0" /></a>
+<a href="https://ibb.co/s9t2cLLs"><img src="https://i.ibb.co/Wvs67SSB/html-to-md.png" width="90%" alt="html-to-md" border="0" /></a>
 </p>
 
 A dependency-free, mobile-friendly HTML table converter. Open `index.html` directly in a modern browser, paste an HTML table or a larger HTML fragment, and convert all discovered tables into Markdown.
@@ -34,7 +34,7 @@ If you're on mobile or a device without Git installed, either download the files
 ## Use
 
 1. Open `index.html` in Chrome or another current browser, including on Android.
-2. If your table has relative or root-relative links e.g. `(wiki/...)`, paste the website link in **"Source Link"**. If it doesn't, then leave it blank.
+2. If your table has relative or root-relative links e.g. `(wiki/...)`, paste the website link in **"Source Page URL"**. If it doesn't, then leave it blank.
 3. Paste HTML into **HTML input**.
 4. Select **Convert**.
 5. Copy the result, edit it if desired, or download it as `tables.md`.
