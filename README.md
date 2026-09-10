@@ -5,6 +5,18 @@
 </p>
 
 A dependency-free, mobile-friendly HTML table converter. Open `index.html` directly in a modern browser, paste an HTML table or a larger HTML fragment, and convert all discovered tables into Markdown. The app uses only local browser features. It does not upload, store, or send pasted HTML anywhere.
+
+## Table Of Contents
+
+ - [Features](#features)
+ - [Use](#use)
+ - [Installation](#installation)
+   - [Git](#git)
+   - [Manual](#manual)
+ - [Updating](#updating)
+   - [Git](#git)
+   - [Manual](#manual)
+
 ## Features
 
 - Reconstructs logical table grids before generating Markdown, including `rowspan`, `colspan`, empty cells, and uneven rows.
