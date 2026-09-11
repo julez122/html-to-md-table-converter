@@ -13,6 +13,7 @@
 
   const BLOCK_TAGS = new Set(['ADDRESS', 'ARTICLE', 'ASIDE', 'BLOCKQUOTE', 'DD', 'DIV', 'DL', 'DT', 'FIGCAPTION', 'FIGURE', 'FOOTER', 'H1', 'H2', 'H3', 'H4', 'H5', 'H6', 'HEADER', 'LI', 'MAIN', 'NAV', 'OL', 'P', 'SECTION', 'UL']);
   const IGNORED_TAGS = new Set(['SCRIPT', 'STYLE', 'TEMPLATE', 'NOSCRIPT', 'SVG', 'CANVAS']);
+  const STRUCTURE_SELECTOR = 'table, ul.gallery';
   let fileLoadToken = 0;
 
   function setStatus(message, state = 'info') {
@@ -145,11 +146,37 @@
       || type === 'application/xhtml+xml';
   }
 
-  function extractTableMarkup(html) {
+  function extractSupportedMarkup(html) {
     const documentFragment = parseDocument(html);
-    const tables = Array.from(documentFragment.querySelectorAll('table'));
-    const topLevelTables = tables.filter((table) => !table.parentElement?.closest('table'));
-    return topLevelTables.map((table) => table.outerHTML).join('\n\n');
+
+    function extractChildren(parent) {
+      const fragment = documentFragment.createDocumentFragment();
+      Array.from(parent.children).forEach((child) => {
+        if (child.matches(STRUCTURE_SELECTOR)) {
+          // Retain nested structures inside their owner only once during import.
+          fragment.append(child.cloneNode(true));
+          return;
+        }
+
+        const content = extractChildren(child);
+        if (child.matches('[role="tabpanel"]') && content.querySelector('ul.gallery')) {
+          // Keep heading context without copying OOUI controls or wrapper attributes.
+          const panel = documentFragment.createElement('div');
+          panel.setAttribute('role', 'tabpanel');
+          if (child.hasAttribute('id')) {
+            panel.setAttribute('id', child.getAttribute('id'));
+          }
+          panel.append(content);
+          fragment.append(panel);
+        } else {
+          fragment.append(content);
+        }
+      });
+      return fragment;
+    }
+
+    return Array.from(extractChildren(documentFragment.body).children)
+      .map((structure) => structure.outerHTML).join('\n\n');
   }
 
   function inlineCode(content) {
@@ -160,10 +187,9 @@
     return `${fence}${needsPadding ? ' ' : ''}${content}${needsPadding ? ' ' : ''}${fence}`;
   }
 
-  function imageToMarkdown(image, sourcePageUrl) {
+  function imageToMarkdown(image, sourcePageUrl, href = image.closest('a')?.getAttribute('href')) {
     const alt = image.getAttribute('alt')?.trim() || 'Image';
-    const anchor = image.closest('a');
-    const anchorHref = anchor?.getAttribute('href')?.trim();
+    const anchorHref = href?.trim();
     const source = image.getAttribute('src')?.trim();
     const imageDestination = resolveDestination(source || anchorHref || '', sourcePageUrl);
     const linkDestination = resolveDestination(anchorHref || '', sourcePageUrl);
@@ -191,7 +217,7 @@
       return '';
     }
 
-    if (tag === 'TABLE') {
+    if (node.matches(STRUCTURE_SELECTOR)) {
       return ' ';
     }
 
@@ -292,7 +318,9 @@
   }
 
   function fallbackTable(table) {
-    const text = normalizeCellMarkdown(table.textContent || '');
+    const content = table.cloneNode(true);
+    content.querySelectorAll(STRUCTURE_SELECTOR).forEach((nested) => nested.replaceWith(' '));
+    const text = normalizeCellMarkdown(content.textContent || '');
     return [
       '| Column 1 |',
       '| --- |',
@@ -300,23 +328,47 @@
     ].join('\n');
   }
 
+  function galleryToMarkdown(gallery, sourcePageUrl) {
+    const items = Array.from(gallery.children).filter((child) => child.matches('li.gallerybox'));
+    const rows = items.map((item) => {
+      const content = item.cloneNode(true);
+      // Nested tables/galleries get their own output; edit controls are not captions.
+      content.querySelectorAll(`${STRUCTURE_SELECTOR}, .mw-editsection, .ht-editsection, [role="tab"]`)
+        .forEach((nested) => nested.replaceWith(' '));
+      const image = content.querySelector('.thumb img');
+      const caption = content.querySelector('.gallerytext');
+      const pageHref = caption?.querySelector('a[href]')?.getAttribute('href') || '';
+      const imageMarkdown = image?.getAttribute('src')?.trim()
+        ? normalizeCellMarkdown(imageToMarkdown(image, sourcePageUrl, pageHref))
+        : '';
+      return formatMarkdownRow([imageMarkdown, caption ? cellToMarkdown(caption, sourcePageUrl) : '']);
+    });
+    const markdown = ['| Image | Name |', '| --- | --- |', ...rows].join('\n');
+    const panelId = gallery.closest('[role="tabpanel"]')?.getAttribute('id')?.trim();
+    const heading = panelId?.replace(/\s+/g, ' ').replace(/([\\`*_[\]<>#])/g, '\\$1');
+    return heading ? `## ${heading}\n\n${markdown}` : markdown;
+  }
+
   function convertHtmlToMarkdown(html, sourcePageUrl = '') {
     const documentFragment = parseDocument(html);
-    const tables = Array.from(documentFragment.querySelectorAll('table'));
-    if (tables.length === 0) {
+    const structures = Array.from(documentFragment.querySelectorAll(STRUCTURE_SELECTOR));
+    if (structures.length === 0) {
       return { markdown: '', count: 0 };
     }
 
-    const markdownTables = tables.map((table) => {
+    const markdownTables = structures.map((structure) => {
+      if (structure.matches('ul.gallery')) {
+        return galleryToMarkdown(structure, sourcePageUrl);
+      }
       try {
-        return tableToMarkdown(table, sourcePageUrl);
+        return tableToMarkdown(structure, sourcePageUrl);
       } catch (error) {
         console.warn('A table needed the fallback converter.', error);
-        return fallbackTable(table);
+        return fallbackTable(structure);
       }
     });
 
-    return { markdown: markdownTables.join('\n\n'), count: tables.length };
+    return { markdown: markdownTables.join('\n\n'), count: structures.length };
   }
 
   function convertFromInput() {
@@ -324,7 +376,7 @@
     const result = convertHtmlToMarkdown(input.value, sourcePageUrl);
     output.value = result.markdown;
     if (result.count === 0) {
-      setStatus('No HTML table was found.', 'error');
+      setStatus('No HTML table or MediaWiki gallery was found.', 'error');
       return;
     }
     if (sourcePageUrl && !hasValidSourcePageUrl(sourcePageUrl)) {
@@ -399,17 +451,17 @@
     const requestToken = ++fileLoadToken;
     setStatus(`Reading ${file.name}…`);
     try {
-      const tableMarkup = extractTableMarkup(await file.text());
+      const supportedMarkup = extractSupportedMarkup(await file.text());
       if (requestToken !== fileLoadToken) {
         return;
       }
-      if (!tableMarkup) {
-        setStatus(`No HTML table was found in ${file.name}.`, 'error');
+      if (!supportedMarkup) {
+        setStatus(`No HTML table or MediaWiki gallery was found in ${file.name}.`, 'error');
         return;
       }
-      input.value = tableMarkup;
+      input.value = supportedMarkup;
       output.value = '';
-      setStatus(`Loaded table markup from ${file.name}. Select Convert to process it.`);
+      setStatus(`Loaded table/gallery markup from ${file.name}. Select Convert to process it.`);
     } catch (error) {
       if (requestToken === fileLoadToken) {
         setStatus(`Could not read ${file.name}. Try choosing the file again.`, 'error');
@@ -556,6 +608,142 @@
       },
     ];
 
+    const galleryItem = '<li class="gallerybox"><div class="thumb"><a href="/wiki/File:Shani.png"><img alt="Shani Icon Small" src="icons/shani.png"></a></div><div class="gallerytext"><center><a href="/wiki/Shani">Shani</a></center></div></li>';
+    const galleryHtml = `<ul class="gallery mw-gallery-traditional">${galleryItem}</ul>`;
+    const galleryHeader = '| Image | Name |\n| --- | --- |';
+    const galleryRow = '| [![Shani Icon Small](icons/shani.png)](/wiki/Shani) | [Shani](/wiki/Shani) |';
+    const galleryMarkdown = `${galleryHeader}\n${galleryRow}`;
+    const plainTable = '<table><tr><th>Label</th></tr><tr><td>Value</td></tr></table>';
+    const plainMarkdown = '| Label |\n| --- |\n| Value |';
+    const mixedHtml = `${plainTable}<div id="Flame" role="tabpanel">${galleryHtml}</div>${plainTable}`;
+    const galleryCases = [
+      {
+        name: 'simple gallery uses the caption page link instead of the thumbnail link',
+        html: galleryHtml,
+        expected: galleryMarkdown,
+      },
+      {
+        name: 'multiple gallery items keep their order',
+        html: `<ul class="gallery">${galleryItem}${galleryItem.replaceAll('Shani', 'Feliz').replace('shani.png', 'feliz.png')}</ul>`,
+        expected: `${galleryMarkdown}\n${galleryRow.replaceAll('Shani', 'Feliz').replace('shani.png', 'feliz.png')}`,
+      },
+      {
+        name: 'tab-panel heading',
+        html: `<div id="Flame" role="tabpanel">${galleryHtml}</div>`,
+        expected: `## Flame\n\n${galleryMarkdown}`,
+      },
+      {
+        name: 'multiple tab panels including hidden panels keep their headings',
+        html: `<div id="Flame" role="tabpanel">${galleryHtml}</div><div id="Water" role="tabpanel" hidden>${galleryHtml}</div>`,
+        expected: `## Flame\n\n${galleryMarkdown}\n\n## Water\n\n${galleryMarkdown}`,
+      },
+      {
+        name: 'nearest tab-panel heading',
+        html: `<section id="Outer" role="tabpanel"><div id="Inner" role="tabpanel">${galleryHtml}</div></section>`,
+        expected: `## Inner\n\n${galleryMarkdown}`,
+      },
+      {
+        name: 'tab panel without an id does not invent a heading',
+        html: `<div role="tabpanel">${galleryHtml}</div>`,
+        expected: galleryMarkdown,
+      },
+      {
+        name: 'tab-panel id is a single literal Markdown heading',
+        html: `<div id="Flame_[rare]&#10;form" role="tabpanel">${galleryHtml}</div>`,
+        expected: `## Flame\\_\\[rare\\] form\n\n${galleryMarkdown}`,
+      },
+      {
+        name: 'protocol-relative image and root-relative page use the source URL',
+        sourcePageUrl: 'https://arkrecodewiki.miraheze.org/wiki/Members',
+        html: galleryHtml.replace('icons/shani.png', '//static.wikitide.net/example.png'),
+        expected: `${galleryHeader}\n| [![Shani Icon Small](https://static.wikitide.net/example.png)](https://arkrecodewiki.miraheze.org/wiki/Shani) | [Shani](https://arkrecodewiki.miraheze.org/wiki/Shani) |`,
+      },
+      {
+        name: 'protocol-relative URLs inherit an HTTP source protocol',
+        sourcePageUrl: 'http://example.com/wiki/Members',
+        html: galleryHtml.replace('icons/shani.png', '//static.wikitide.net/example.png'),
+        expected: `${galleryHeader}\n| [![Shani Icon Small](http://static.wikitide.net/example.png)](http://example.com/wiki/Shani) | [Shani](http://example.com/wiki/Shani) |`,
+      },
+      {
+        name: 'relative gallery page and image use the source URL',
+        sourcePageUrl: 'https://example.com/wiki/Members',
+        html: galleryHtml.replace('/wiki/Shani', './Shani').replace('icons/shani.png', '../images/shani.png'),
+        expected: `${galleryHeader}\n| [![Shani Icon Small](https://example.com/images/shani.png)](https://example.com/wiki/Shani) | [Shani](https://example.com/wiki/Shani) |`,
+      },
+      {
+        name: 'empty source preserves protocol-relative gallery URLs',
+        html: galleryHtml.replace('icons/shani.png', '//static.wikitide.net/example.png'),
+        expected: galleryMarkdown.replace('icons/shani.png', '//static.wikitide.net/example.png'),
+      },
+      {
+        name: 'invalid source preserves literal gallery destinations',
+        sourcePageUrl: 'not a URL',
+        html: galleryHtml,
+        expected: galleryMarkdown,
+      },
+      {
+        name: 'absolute gallery URLs stay unchanged',
+        sourcePageUrl: 'https://example.com/wiki/Members',
+        html: galleryHtml.replace('icons/shani.png', 'https://cdn.example.org/shani.png').replace('/wiki/Shani', 'https://wiki.example.org/Shani'),
+        expected: `${galleryHeader}\n| [![Shani Icon Small](https://cdn.example.org/shani.png)](https://wiki.example.org/Shani) | [Shani](https://wiki.example.org/Shani) |`,
+      },
+      {
+        name: 'plain gallery caption preserves formatting and escapes cell pipes',
+        html: '<ul class="gallery"><li class="gallerybox"><div class="thumb"><a href="/file"><img alt="A|B" src="icon.png"></a></div><div class="gallerytext"><strong>A|B</strong></div></li></ul>',
+        expected: `${galleryHeader}\n| ![A\\|B](icon.png) | **A\\|B** |`,
+      },
+      {
+        name: 'gallery item without an image keeps its caption',
+        html: '<ul class="gallery"><li class="gallerybox"><div class="gallerytext"><a href="/wiki/Shani">Shani</a></div></li></ul>',
+        expected: `${galleryHeader}\n|  | [Shani](/wiki/Shani) |`,
+      },
+      {
+        name: 'gallery item without a caption keeps its image',
+        html: '<ul class="gallery"><li class="gallerybox"><div class="thumb"><img src="icon.png"></div></li></ul>',
+        expected: `${galleryHeader}\n| ![Image](icon.png) |  |`,
+      },
+      {
+        name: 'missing image src is not replaced by a page URL',
+        html: galleryHtml.replace('src="icons/shani.png"', ''),
+        expected: `${galleryHeader}\n|  | [Shani](/wiki/Shani) |`,
+      },
+      {
+        name: 'empty gallery and unrelated list items add no data rows',
+        html: '<ul class="gallery"><li class="gallerycaption">A title</li><li>Other list item</li></ul>',
+        expected: galleryHeader,
+      },
+      {
+        name: 'mixed tables and galleries keep document order',
+        html: mixedHtml,
+        expected: `${plainMarkdown}\n\n## Flame\n\n${galleryMarkdown}\n\n${plainMarkdown}`,
+      },
+      {
+        name: 'gallery nested in a table converts once outside the parent cell',
+        html: `<table><tr><th>Outer</th></tr><tr><td>Before${galleryHtml}After</td></tr></table>`,
+        expected: `| Outer |\n| --- |\n| Before After |\n\n${galleryMarkdown}`,
+      },
+      {
+        name: 'table nested in a gallery converts once outside the caption',
+        html: galleryHtml.replace('</center>', `${plainTable}</center>`),
+        expected: `${galleryMarkdown}\n\n${plainMarkdown}`,
+      },
+      {
+        name: 'nested gallery items are not borrowed by their parent gallery',
+        html: `<ul class="gallery"><li class="gallerybox">${galleryHtml}</li></ul>`,
+        expected: `${galleryHeader}\n|  |  |\n\n${galleryMarkdown}`,
+      },
+      {
+        name: 'gallery captions ignore MediaWiki edit controls and tab buttons',
+        html: galleryHtml.replace('<center>', '<span class="mw-editsection"><a href="/edit">edit</a></span><span class="ht-editsection">edit tab</span><button role="tab">Tab</button><center>'),
+        expected: galleryMarkdown,
+      },
+      {
+        name: 'MediaWiki redlinks remain valid caption page links',
+        html: galleryHtml.replace('/wiki/Shani', '/wiki/Shani?action=edit&amp;redlink=1'),
+        expected: galleryMarkdown.replaceAll('/wiki/Shani)', '/wiki/Shani?action=edit&redlink=1)'),
+      },
+    ];
+
     let passed = 0;
     gridCases.forEach((test) => {
       assertEqual(gridText(test.html), test.expected, test.name);
@@ -565,18 +753,56 @@
       assertEqual(convertHtmlToMarkdown(test.html, test.sourcePageUrl).markdown, test.expected, test.name);
       passed += 1;
     });
+    galleryCases.forEach((test) => {
+      assertEqual(convertHtmlToMarkdown(test.html, test.sourcePageUrl).markdown, test.expected, test.name);
+      passed += 1;
+    });
     assertEqual(convertHtmlToMarkdown('<p>No table here</p>'), { markdown: '', count: 0 }, 'no table result');
     passed += 1;
     assertEqual(isSupportedHtmlFile({ name: 'saved-page.html', type: 'text/html' }), true, 'HTML file type');
     assertEqual(isSupportedHtmlFile({ name: 'saved-page.htm', type: '' }), true, 'HTM file extension');
     assertEqual(isSupportedHtmlFile({ name: 'notes.txt', type: 'text/plain' }), false, 'non-HTML file type');
-    const extractedMarkup = extractTableMarkup('<main>Ignore this text<table id="first"><tr><td>One</td></tr></table><section>Ignore this too</section><table id="second"><tr><td>Two</td></tr></table></main>');
+    const extractedMarkup = extractSupportedMarkup('<main>Ignore this text<table id="first"><tr><td>One</td></tr></table><section>Ignore this too</section><table id="second"><tr><td>Two</td></tr></table></main>');
     assertEqual(parseDocument(extractedMarkup).querySelectorAll('table').length, 2, 'file table extraction count');
     assertEqual(extractedMarkup.includes('Ignore this'), false, 'file table extraction omits non-table markup');
-    const nestedExtractedMarkup = extractTableMarkup('<table id="outer"><tr><td><table id="inner"><tr><td>Child</td></tr></table></td></tr></table>');
+    const nestedExtractedMarkup = extractSupportedMarkup('<table id="outer"><tr><td><table id="inner"><tr><td>Child</td></tr></table></td></tr></table>');
     assertEqual(parseDocument(nestedExtractedMarkup).querySelectorAll('table').length, 2, 'file table extraction keeps nested tables once');
-    assertEqual(extractTableMarkup('<article>No tables here</article>'), '', 'file table extraction empty result');
+    assertEqual(extractSupportedMarkup('<article>No tables here</article>'), '', 'file table extraction empty result');
     passed += 7;
+
+    const unrelatedList = '<ul><li class="gallerybox"><div class="thumb"><img src="icon.png"></div><div class="gallerytext">Not a gallery</div></li></ul><div class="gallery"><li>Also not a gallery</li></div>';
+    assertEqual(convertHtmlToMarkdown(unrelatedList), { markdown: '', count: 0 }, 'unrelated lists are not galleries');
+    assertEqual(extractSupportedMarkup(unrelatedList), '', 'file extraction rejects unrelated lists');
+    assertEqual(convertHtmlToMarkdown(mixedHtml).count, 3, 'mixed conversion counts tables and galleries');
+    assertEqual(extractSupportedMarkup(`<main>Ignore this${galleryHtml}<p>Ignore that</p></main>`), galleryHtml, 'gallery-only file extracts raw HTML');
+    passed += 4;
+
+    const panelFile = `<html><body><div class="oo-ui-layout" data-ooui="ignored"><button role="tab">Ignore tab button</button><div id="Flame" role="tabpanel" data-ooui="ignored"><span class="ht-editsection"><a href="/edit">Ignore edit</a></span><fieldset>${galleryHtml}${plainTable}${galleryHtml}</fieldset></div><p>Ignore prose</p></div></body></html>`;
+    const extractedPanel = extractSupportedMarkup(panelFile);
+    assertEqual(parseDocument(extractedPanel).querySelectorAll('[role="tabpanel"]').length, 1, 'file extraction preserves one shared tab panel');
+    assertEqual(parseDocument(extractedPanel).querySelector('[role="tabpanel"]').id, 'Flame', 'file extraction preserves the panel id');
+    assertEqual(/Ignore|data-ooui|button|fieldset/.test(extractedPanel), false, 'file extraction omits unrelated MediaWiki wrappers and controls');
+    assertEqual(convertHtmlToMarkdown(extractedPanel), {
+      markdown: `## Flame\n\n${galleryMarkdown}\n\n${plainMarkdown}\n\n## Flame\n\n${galleryMarkdown}`,
+      count: 3,
+    }, 'file extraction keeps gallery-table-gallery order within a shared panel');
+    passed += 4;
+
+    const nestedImportCases = [
+      `<div id="Flame" role="tabpanel"><table><tr><td>${galleryHtml}</td></tr></table></div>`,
+      galleryHtml.replace('</center>', `${plainTable}</center>`),
+      `<ul class="gallery"><li class="gallerybox">${galleryHtml}</li></ul>`,
+      `<div id="Outer" role="tabpanel"><div id="Inner" role="tabpanel">${galleryHtml}</div></div>`,
+      `<div id="Outer" role="tabpanel"><div role="tabpanel">${galleryHtml}</div></div>`,
+      mixedHtml,
+    ];
+    nestedImportCases.forEach((html, index) => {
+      const extracted = extractSupportedMarkup(html);
+      assertEqual(parseDocument(extracted).querySelectorAll(STRUCTURE_SELECTOR).length,
+        parseDocument(html).querySelectorAll(STRUCTURE_SELECTOR).length, `nested file extraction ${index + 1} keeps each structure once`);
+      assertEqual(convertHtmlToMarkdown(extracted), convertHtmlToMarkdown(html), `nested file extraction ${index + 1} preserves conversion and headings`);
+      passed += 2;
+    });
     console.info(`Table converter structural tests: ${passed} passed.`);
     return passed;
   }

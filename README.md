@@ -4,7 +4,7 @@
 <a href="https://ibb.co/6cDqtp29"><img src="https://i.ibb.co/j93jwxd0/html-to-md.png" alt="html to md" border="0" width="80%"></a>
 </p>
 
-A dependency-free, mobile-friendly HTML table converter. Open `index.html` directly in a modern browser, paste an HTML table or a larger HTML fragment, and convert all discovered tables into Markdown. The app uses only local browser features. It does not upload, store, or send pasted HTML anywhere.
+A dependency-free, mobile-friendly HTML table and MediaWiki gallery converter. Open `index.html` directly in a modern browser, paste HTML or attach a saved HTML file, then select Convert to turn all discovered tables and galleries into Markdown. The app uses only local browser features. It does not upload, store, or send pasted HTML anywhere.
 
 ## Table Of Contents
 
@@ -22,9 +22,11 @@ A dependency-free, mobile-friendly HTML table converter. Open `index.html` direc
 - Reconstructs logical table grids before generating Markdown, including `rowspan`, `colspan`, empty cells, and uneven rows.
 - Combines multi-level column headings and uses neutral `Column 1`, `Column 2`, and similar headers when a table has no identifiable header.
 - Preserves common inline content such as links, bold, italics, code, and line breaks.
-- Preserves linked images as Markdown image links, using the image `src` to render the image and its enclosing anchor for the click-through destination.
-- Optionally resolves relative and root-relative links or image destinations against a supplied source-page URL; empty source URLs leave HTML URLs untouched.
-- Reads local `.html`, `.htm`, and `.xhtml` files without uploading them, extracting only their table markup into the existing input.
+- Preserves linked images in normal table cells as Markdown image links, using the image `src` to render the image and its enclosing anchor for the click-through destination.
+- Converts MediaWiki `ul.gallery` lists into `Image` / `Name` Markdown tables, with one row per direct `li.gallerybox`. Images come from `.thumb img`, captions from `.gallerytext`, and image click-through links from `.gallerytext a[href]`. Adds a `##` heading from the nearest `role="tabpanel"` element's `id` before each gallery, including galleries in hidden panels. Unrelated lists, tab buttons, edit controls, and OOUI wrappers are ignored.
+- Optionally resolves relative, root-relative, and protocol-relative links or image destinations against a supplied source-page URL; empty source URLs leave HTML URLs untouched.
+- Reads local `.html`, `.htm`, and `.xhtml` files without uploading them, extracting only supported table/gallery markup and the tab-panel wrappers needed for gallery headings into the existing input. Gallery-only files are supported.
+- Converts mixed tables and galleries in document order, keeping nested structures once in the imported HTML and converting them separately without repeating their contents in parent cells.
 - Treats nested tables as separate tables so their rows cannot shift the parent table's cells.
 - Includes copy, Markdown download, and clear actions that work locally without a server.
 - Uses an auto-fitting action grid and shrink-safe text fields to keep controls inside narrow phone viewports.
@@ -32,10 +34,11 @@ A dependency-free, mobile-friendly HTML table converter. Open `index.html` direc
 ## Use
 
 1. Open `index.html` in Chrome or another current browser, including on Android.
-2. If your table has relative or root-relative links such as `/wiki/...`, paste the website link in **Source page URL**. This also applies to attached HTML files with relative links. Otherwise, leave it blank.
-3. Paste HTML into **HTML input**, or choose a saved HTML file with **Attach HTML File**. Selecting a file extracts its table markup into the input but does not convert automatically.
+2. If your tables or galleries have relative, root-relative, or protocol-relative links such as `/wiki/...` or `//static.wikitide.net/...`, paste the website link in **Source page URL**. This also applies to attached HTML files. Otherwise, leave it blank to preserve URLs as written.
+3. Paste HTML into **HTML input**, or choose a saved HTML file with **Attach HTML File**. Selecting a file extracts supported raw HTML into the input and clears the old output; Markdown is generated only when you select Convert.
 4. Select **Convert**.
 5. Copy the result, edit it if desired, or download it as `tables.md`.
+
 
 ## Installation
 
