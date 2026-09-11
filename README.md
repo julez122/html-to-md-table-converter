@@ -1,7 +1,7 @@
 # HTML Table to Markdown Table
 
 <p align="center">
-<a href="https://ibb.co/6cDqtp29"><img src="https://i.ibb.co/j93jwxd0/html-to-md.png" alt="html to md" border="0" width="80%"></a>
+<a href="https://ibb.co/b8KhQKR"><img src="https://i.ibb.co/fPxRqxG/html-to-md.png" alt="html-to-md" width="80%"></a>
 </p>
 
 A dependency-free, mobile-friendly HTML table and MediaWiki gallery converter. Open `index.html` directly in a modern browser, paste HTML or attach a saved HTML file, then select Convert to turn all discovered tables and galleries into Markdown. The app uses only local browser features. It does not upload, store, or send pasted HTML anywhere.
@@ -39,7 +39,6 @@ A dependency-free, mobile-friendly HTML table and MediaWiki gallery converter. O
 4. Select **Convert**.
 5. Copy the result, edit it if desired, or download it as `tables.md`.
 
-
 ## Installation
 
 ### Git
@@ -52,10 +51,9 @@ git clone https://github.com/julez122/html-to-md-table-converter.git
 2. Open the folder.
 3. Open `index.html`.
 
-
 ### Manual
 
-1. If you're on mobile or a device without Git installed, either download the files individually or [download the zip](https://github.com/julez122/html-to-md-table-converter/releases/download/v4/html-to-md-table-converter-v4.zip).
+1. If you're on mobile or a device without Git installed, either download the files individually or [download the zip](https://github.com/julez122/html-to-md-table-converter/releases/download/v5/html-to-md-table-converter-v5.zip).
 2. Extract the zip file.
 3. Open the folder.
 4. Open `index.html`.
